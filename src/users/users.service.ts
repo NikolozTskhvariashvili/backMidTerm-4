@@ -43,17 +43,24 @@ export class UsersService implements OnModuleInit {
     return userLength;
   }
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  async create({ age, email, fullName, gender }: CreateUserDto) {
+    const existedUser = await this.userModel.findOne({ email });
+    if (existedUser) throw new BadRequestException('user already exist');
+
+    const newUser = await this.userModel.create({
+      fullName,
+      age,
+      email,
+      gender,
+    });
+    return { message: 'user created succ', data: newUser };
   }
 
-  async findAll(page : number , take : number , {
-    age,
-    ageFrom,
-    ageTo,
-    gender,
-    nickName,
-  }: QueryParamDro) {
+  async findAll(
+    page: number,
+    take: number,
+    { age, ageFrom, ageTo, gender, nickName }: QueryParamDro,
+  ) {
     const filter: any = {};
     if (nickName) {
       filter.fullName = { $regex: nickName, $options: 'i' };
@@ -71,7 +78,7 @@ export class UsersService implements OnModuleInit {
       filter.gender = gender;
     }
 
-    console.log(page,take)
+    console.log(page, take);
 
     const users = await this.userModel
       .find(filter)
@@ -81,16 +88,36 @@ export class UsersService implements OnModuleInit {
   }
 
   async findOne(id) {
-    if(!isValidObjectId(id)) throw new BadRequestException('invalid id')
-    const user = await this.userModel.findById(id)
-  return user
+    if (!isValidObjectId(id)) throw new BadRequestException('invalid id');
+    const user = await this.userModel.findById(id);
+    if (!user) throw new BadRequestException('usr not found');
+    return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: number, { age, email, fullName, gender }: UpdateUserDto) {
+    if (!isValidObjectId(id)) throw new BadRequestException('invalid id');
+
+    const user = await this.userModel.findById(id);
+    if (!user) throw new BadRequestException('user not found');
+
+    const updateReq: any = {};
+
+    if (age) updateReq.age = age;
+    if (email) updateReq.email = email;
+    if (fullName) updateReq.fullName = fullName;
+    if (gender) updateReq.gender = gender;
+
+    await this.userModel.findByIdAndUpdate(id, updateReq, { new: true });
+    return 'updated succses';
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: number) {
+    if (!isValidObjectId(id)) throw new BadRequestException('invalid id');
+
+    const user = await this.userModel.findById(id);
+    if (!user) throw new BadRequestException('user not found');
+
+    await this.userModel.findByIdAndDelete(id);
+    return 'user delte suucsc';
   }
 }
